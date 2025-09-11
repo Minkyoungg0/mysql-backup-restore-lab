@@ -2,8 +2,8 @@
 
 ### 오늘 먹인 **밥과 간식**을 기록하고, 밤마다 **타임캡슐**로 안전하게 보관하세요 :)
 
-매 끼니의 **밥**과 **간식**을 시간·양·칼로리·메모와 함께 남깁니다.  
-기록은 매일 밤 **타임캡슐로 포장**되어 안전하게 보관되고, 실수나 이상이 생기면 **지정 시각**으로 깔끔하게 **되감아** 원래 상태를 되찾을 수 있습니다.
+**캐릭터(고양이/강아지/펭귄)** 를 키우며 `먹이기` · `다치기` 같은 이벤트를 기록하고, **MySQL 전체 백업과 시점복구(PITR)** 로 **장애를 재현·복구**하는 프로젝트입니다.  
+운영에서 흔히 겪는 “사람 실수로 인한 데이터 장애를 백업/복구로 회복”하는 흐름을 구성했습니다.
 
 <img width="1024" height="576" alt="1757575200418" src="https://github.com/user-attachments/assets/63df5018-dc37-4c10-ad16-bb6c2142cc11" />
 
@@ -33,37 +33,151 @@
 
 <br>
 
-## 📝 프로젝트 목표
-**손쉬운 급여 기록**: 밥/간식을 빠르게 남기고 누적 히스토리를 관리합니다.<br>
-**자동 안심저장 & 체크포인트**: 매일 정해진 시간에 기록을 **타임캡슐**로 포장하고 기준점을 남깁니다.<br>
-**시각 지정 복구(PITR)**: 사고 직전 **정확히 1초 전**으로 원클릭 되감기를 지원합니다.<br>
-**무결성 검증**: 되감기 후 행수·합계·인덱스·FK를 점검해 **“진짜 복원”**을 확인합니다.
+## 🎯 프로젝트 목표
 
-## 📦 저장하는 데이터(요약)
-- `feed_log`: `fed_at`, `type(meal|snack)`, `amount_gram`, `kcal`, `note`
-- `daily_goal`: 날짜별 칼로리 목표, 간식 한도
-- `restore_points`: 타임캡슐 파일·체크섬·생성 시각(되감기 체크포인트)
+- 게임처럼 캐릭터를 돌보며 시간이 흐를수록 **체력과 기분이 변하고, 그 과정이 데이터베이스에 사건 기록**으로 남습니다.
+- 운영 관점에서는 주기적으로 **전체 백업**을 만들고, **문제가 생기면 최신 백업과 변경 기록을 이용해 원하는 시점**으로 되돌립니다.
 
-## ⚙️ 동작 개요
-1) 기록(밥/간식) 저장 → 히스토리 누적  
-2) **매일 03:00 타임캡슐 포장**(압축 + 체크섬, `latest` 링크 갱신)  
-3) 이상 징후 감지 시 **되감기 타깃 시각** 자동 산출(`target.txt`)  
-4) `restore_pitr.sh --to "<타깃 시각>"`으로 **직전 상태로 되돌림** → `verify.sh`로 검증
+<br>
 
-## 📁 파일 구조
+## 📦 저장하는 데이터
+- **현재 상태**: 캐릭터 아이콘(정상/먹기/아픔), 체력(0~100), 기분(예: NORMAL·EAT·PAIN), 마지막 백업 시각, 마지막 사고 시각, 갱신 시각.
+- **사건 기록**: 어떤 일이 언제 일어났는지(예: 초기화, 먹이기, 사고, 백업, 복구)를 시간과 세부 내용과 함께 저장.
+- **복구 메타**: 생성된 전체 백업 파일 경로와 덤프 헤더에서 추출한 기준 정보, 생성 시각.
+- **산출물**: `backups/` 폴더의 전체 백업 파일과 메타 파일, `reports/` 폴더의 상태 점검 리포트.
+
+<br>
 
 ## ⚙ 사용 기술 및 도구 (Tech Stack & Tools)
+- **IDE / OS**: VS Code · Ubuntu 24.04 · diff 3.10
+- **가상 환경**: VirtualBox (Linux VM 구동)
+- **DB / CLI**: MySQL 8.x · mysql · mysqldump · mysqlbinlog
+- **Shell / 유틸**: Bash · GNU coreutils · cron
+- **버전 관리**: Git · GitHub
+- **협업**: Notion · Slack
 
-## ⚙️ 시스템 아키텍처
+<br>
 
-## 📦 데이터 스키마(요약)
+## ⚙️ 동작 개요
+- **시작**: 캐릭터를 선택해 체력 100, 기분 정상 상태로 초기화한다.
+- **진행**: 시간이 흐르면 체력이 조금씩 줄고, 먹이를 주면 회복되며, 사고가 나면 체력이 감소하고 임계값 이하에서는 아픈 상태로 바뀐다. 화면 아이콘은 이 변화를 바로 반영한다.
+- **기록**: 모든 행동과 상태 변화가 데이터베이스에 사건으로 남아 이후 점검과 분석에 활용된다.
+- **백업**: 필요할 때 전체 백업을 만들어 기준 시점의 상태를 보존하고, 복구에 필요한 부가 정보를 함께 저장한다.
+- **복구**: 문제가 생기면 가장 최근의 전체 백업을 불러온 뒤, 변경 이력을 원하는 시점까지 차례대로 적용하여 과거 상태로 되돌린다.
+- **점검**: 현재 상태와 사건 누계를 리포트로 확인해, 운영 흐름이 의도대로 작동했는지 빠르게 검증한다.
 
-## ⚙️ 설치 & 초기화
+<br>
 
-## 🔄 자동화 설정(cron 예시)
+## 📁 파일 구조
+```
+tama-game/
+├── backups/ # 전체 백업(.sql)과 메타(.meta) 저장
+├── reports/ # 점검 리포트 저장(verify)
+├── backup.sh # 전체 백업 + 메타 저장
+├── eat.sh # 먹이기(EAT) → health=100, mood 일시 전환
+├── env.sh # 공통 환경변수(MySQL 접속, 경로, 헬퍼함수)
+├── game_init.sh # 캐릭터 선택 + 초기화(health=100, mood=NORMAL)
+├── oops.sh # 데미지(OOPS) → health -10 (0 이하시 PAIN)
+├── play.sh # 메인 런처(상태 감소 루프 + 메뉴/키 입력 UI)
+├── restore_pitr.sh # 가장 최신 full dump + binlog로 시점복구(-1d)
+├── verify.sh # 현재 상태/이벤트 집계 리포트 출력
+└── (예시) full_YYYYmmdd_HHMMSS.sql # 샘플 백업 덤프
+```
 
-## 🚀 실행 흐름(기본)
+<br>
 
-## ⏪ 되감기 트리거 시나리오 (요약)
+## 🎮 플레이 & 운영 시나리오
+- **시작**: 캐릭터를 선택해 체력 100, 기분 정상으로 초기화하고 터미널에서 상태를 본다.  
+  ```bash
+  ./game_init.sh   # 캐릭터 아이콘 선택 → health=100, mood=NORMAL
+  ./play.sh        # m: 메뉴, q: 종료
+  ```
+- **기록**: 모든 변화(초기화/먹이기/사고/백업/복구)는 사건으로 DB에 누적된다.
+  ```
+  -- 예: 최근 이벤트 10건
+  SELECT ev_type, ev_at, details FROM events ORDER BY ev_at DESC LIMIT 10;
+  ```
+  
+- **운영**: 전체 백업을 만들고, 문제가 생기면 최신 백업 + 변경 이력으로 원하는 시점까지 되돌린다.
+  ```
+  ./backup.sh         # full dump + meta
+  ./restore_pitr.sh   # 최신 dump 복원 + 어제(-1d)까지 재적용
+  ```
+  
+- **점검**: 현재 상태/사건 누계를 리포트로 확인한다.
+  
+  ```
+  ./verify.sh
+  cat reports/verify_*.txt
+  ```
 
-> 핵심은 “파일을 모아놨다”가 아니라, **언제든 정확히 되돌릴 수 있음을 증명**하는 것입니다.
+<br>
+
+## 🧩 데이터 모델
+- **현재 상태**: 캐릭터 아이콘(정상/먹기/아픔), 체력(0~100), 기분(예: 정상·먹는 중·아픔), 마지막 백업 시각, 마지막 사고 시각, 갱신 시각을 저장한다.
+- **사건 기록**: 어떤 일이 언제 일어났는지와 세부 내용을 유형(초기화, 먹이기, 사고, 백업, 복구)별로 누적한다.
+- **복구 메타**: 생성된 전체 백업 파일 경로와 덤프 헤더에서 추출한 기준 정보, 생성 시각을 보관한다.
+
+```
+-- 요약 DDL (필요 시 실제 덤프를 임포트 권장)
+CREATE TABLE game_state (
+  id INT PRIMARY KEY,
+  icon_normal VARCHAR(255), icon_eat VARCHAR(255), icon_pain VARCHAR(255),
+  health INT NOT NULL DEFAULT 100,
+  mood VARCHAR(20) NOT NULL DEFAULT 'NORMAL',
+  last_backup_at DATETIME(6), last_oops_at DATETIME(6), updated_at DATETIME(6)
+);
+
+CREATE TABLE events (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  ev_type VARCHAR(20) NOT NULL,
+  ev_at DATETIME(6) NOT NULL,
+  details JSON
+);
+
+CREATE TABLE pitr_meta (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  full_dump VARCHAR(512) NOT NULL,
+  meta_text LONGTEXT,
+  created_at DATETIME(6) NOT NULL
+);
+```
+
+<br>
+
+## 🧪 시연 플로우
+1. 초기화
+   ```
+   ./game_init.sh
+   ```
+2. 플레이
+   ```
+   ./play.sh  # 화면에서 체력 감소/아이콘 변화 확인
+   ```
+3. 먹이기 → 회복
+   ```
+   ./eat.sh
+   ``` 
+4. 사고 여러 번 → 아픔 상태
+   ```
+   ./oops.sh && ./oops.sh && ./oops.sh
+   ```
+5. 전체 백업 생성
+   ```
+   ./backup.sh
+   ls backups/
+   ```
+6. 복구
+   ```
+   ./restore_pitr.sh
+   ```
+7. 점검 리포트
+   ```
+   ./verify.sh
+   cat reports/verify_*.txt
+   ```
+
+## 🗓️자동화 예시
+
+
+
