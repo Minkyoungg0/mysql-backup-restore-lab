@@ -146,6 +146,10 @@ CREATE TABLE pitr_meta (
 <br>
 
 ## 🧪 시연 플로우
+
+![시연](https://github.com/user-attachments/assets/13801d91-0de3-47c9-914f-56a7750378f7)
+
+
 1. 초기화
    ```
    ./game_init.sh
