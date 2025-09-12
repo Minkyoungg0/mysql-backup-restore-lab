@@ -70,18 +70,14 @@
 
 ## 📁 파일 구조
 ```
-tama-game/
-├── backups/ # 전체 백업(.sql)과 메타(.meta) 저장
-├── reports/ # 점검 리포트 저장(verify)
-├── backup.sh # 전체 백업 + 메타 저장
-├── eat.sh # 먹이기(EAT) → health=100, mood 일시 전환
-├── env.sh # 공통 환경변수(MySQL 접속, 경로, 헬퍼함수)
-├── game_init.sh # 캐릭터 선택 + 초기화(health=100, mood=NORMAL)
-├── oops.sh # 데미지(OOPS) → health -10 (0 이하시 PAIN)
-├── play.sh # 메인 런처(상태 감소 루프 + 메뉴/키 입력 UI)
-├── restore_pitr.sh # 가장 최신 full dump + binlog로 시점복구(-1d)
-├── verify.sh # 현재 상태/이벤트 집계 리포트 출력
-└── (예시) full_YYYYmmdd_HHMMSS.sql # 샘플 백업 덤프
+mysql-backup-restore-lab/
+├─ backups/ # 전체 백업(.sql) 저장 폴더
+├─ backup.sh # full dump 생성 (파일명: full_YYYYmmdd_HHMMSS.sql)
+├─ eat.sh # 먹이기(EAT) 이벤트 → 체력 회복/상태 변경
+├─ env.sh # 환경 변수 (MySQL 접속, 경로 등)
+├─ game_init.sh # 게임 초기화(캐릭터 선택, health=100, mood=NORMAL)
+├─ oops.sh # 사고(OOPS) 이벤트 → 체력 감소/상태 변경
+└─ play.sh # 메인 런처(간단 UI, 상태 감소 루프 & 키 입력)
 ```
 
 <br>
