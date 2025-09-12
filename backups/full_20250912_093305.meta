@@ -1,0 +1,14 @@
+# META captured at 2025-09-12 09:33:05.275944
+# MySQL version:
+9.4.0
+# Binary log status (8.4+):
+*************************** 1. row ***************************
+binlog.000003
+52464
+
+
+
+# Binary logs list:
+binlog.000001	2984581	No
+binlog.000002	149561	No
+binlog.000003	52464	No
