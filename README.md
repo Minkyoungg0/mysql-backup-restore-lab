@@ -1,11 +1,21 @@
 # 🍙 TamaDB
 
+
+
+[![MySQL](https://img.shields.io/badge/MySQL-4479A1?style=for-the-badge&logo=mysql&logoColor=white)](https://www.mysql.com/)
+[![Bash](https://img.shields.io/badge/GNU%20Bash-4EAA25?style=for-the-badge&logo=GNU%20Bash&logoColor=white)](https://www.gnu.org/software/bash/)
+[![Ubuntu](https://img.shields.io/badge/Ubuntu-E95420?style=for-the-badge&logo=ubuntu&logoColor=white)](https://ubuntu.com/)
+[![Git](https://img.shields.io/badge/Git-F05032?style=for-the-badge&logo=git&logoColor=white)](https://git-scm.com/)
+
 ### 오늘 먹인 **밥과 간식**을 기록하고, 밤마다 **타임캡슐**로 안전하게 보관하세요 :)
 
 **캐릭터(고양이/강아지/펭귄)** 를 키우며 `먹이기` · `다치기` 같은 이벤트를 기록하고, **MySQL 전체 백업과 시점복구(PITR)** 로 **장애를 재현·복구**하는 프로젝트입니다.  
 운영에서 흔히 겪는 “사람 실수로 인한 데이터 장애를 백업/복구로 회복”하는 흐름을 구성했습니다.
 
-<img width="1024" height="576" alt="1757575200418" src="https://github.com/user-attachments/assets/63df5018-dc37-4c10-ad16-bb6c2142cc11" />
+<img width="1024" alt="TamaDB Architecture" src="https://github.com/user-attachments/assets/63df5018-dc37-4c10-ad16-bb6c2142cc11" />
+
+---
+
 
 ## 👥 구성원
 <table>
@@ -33,95 +43,131 @@
 
 <br>
 
-## 🎯 프로젝트 목표
+--- 
 
-- 게임처럼 캐릭터를 돌보며 시간이 흐를수록 **체력과 기분이 변하고, 그 과정이 데이터베이스에 사건 기록**으로 남습니다.
-- 운영 관점에서는 주기적으로 **전체 백업**을 만들고, **문제가 생기면 최신 백업과 변경 기록을 이용해 원하는 시점**으로 되돌립니다.
+## 🎯 핵심 목표
 
-<br>
+*   **게이미피케이션 학습:** 캐릭터의 상태(체력, 기분) 변화가 데이터베이스에 이벤트로 기록되는 직관적인 게임형 인터페이스를 제공합니다.
+*   **재해 시뮬레이션:** 데이터 무결성이 손상되고 복구가 필요한 현실적인 재해 복구 시나리오를 구현합니다.
+*   **운영 실습:** 표준 MySQL 도구를 사용하여 전체 백업 생성 및 특정 시점 복구(PITR) 프로세스를 개발하고 자동화합니다.
 
-## 📦 저장하는 데이터
-- **현재 상태**: 캐릭터 아이콘(정상/먹기/아픔), 체력(0~100), 기분(예: NORMAL·EAT·PAIN), 마지막 백업 시각, 마지막 사고 시각, 갱신 시각.
-- **사건 기록**: 어떤 일이 언제 일어났는지(예: 초기화, 먹이기, 사고, 백업, 복구)를 시간과 세부 내용과 함께 저장.
-- **복구 메타**: 생성된 전체 백업 파일 경로와 덤프 헤더에서 추출한 기준 정보, 생성 시각.
-- **산출물**: `backups/` 폴더의 전체 백업 파일과 메타 파일, `reports/` 폴더의 상태 점검 리포트.
+---
 
-<br>
+## ✨ 주요 기능
 
-## ⚙ 사용 기술 및 도구 (Tech Stack & Tools)
-- **IDE / OS**: VS Code · Ubuntu 24.04 · diff 3.10
-- **가상 환경**: VirtualBox (Linux VM 구동)
-- **DB / CLI**: MySQL 8.x · mysql · mysqldump · mysqlbinlog
-- **Shell / 유틸**: Bash · GNU coreutils · cron
-- **버전 관리**: Git · GitHub
-- **협업**: Notion · Slack
+*   **인터랙티브 펫 관리:** 간단한 셸 명령어를 통해 캐릭터를 선택하고 체력과 기분을 관리합니다.
+*   **실시간 상태 변화:** 펫의 체력은 시간이 지남에 따라 자연스럽게 감소하며, 먹이 주기(`eat.sh`)나 사고(`oops.sh`) 같은 이벤트에 의해 영향을 받습니다.
+*   **자동화된 백업:** `backup.sh` 스크립트는 `mysqldump`를 사용하여 전체 데이터베이스 덤프를 생성하고 복구에 필요한 메타데이터를 저장합니다.
+*   **특정 시점 복구 (PITR):** `restore_pitr.sh` 스크립트는 최신 전체 백업을 적용하고 원하는 타임스탬프까지 바이너리 로그(`mysqlbinlog`)를 재생하여 데이터베이스를 특정 순간으로 복원합니다.
 
-<br>
+---
 
-## ⚙️ 동작 개요
-- **시작**: 캐릭터를 선택해 체력 100, 기분 정상 상태로 초기화한다.
-- **진행**: 시간이 흐르면 체력이 조금씩 줄고, 먹이를 주면 회복되며, 사고가 나면 체력이 감소하고 임계값 이하에서는 아픈 상태로 바뀐다. 화면 아이콘은 이 변화를 바로 반영한다.
-- **기록**: 모든 행동과 상태 변화가 데이터베이스에 사건으로 남아 이후 점검과 분석에 활용된다.
-- **백업**: 필요할 때 전체 백업을 만들어 기준 시점의 상태를 보존하고, 복구에 필요한 부가 정보를 함께 저장한다.
-- **복구**: 문제가 생기면 가장 최근의 전체 백업을 불러온 뒤, 변경 이력을 원하는 시점까지 차례대로 적용하여 과거 상태로 되돌린다.
-- **점검**: 현재 상태와 사건 누계를 리포트로 확인해, 운영 흐름이 의도대로 작동했는지 빠르게 검증한다.
+## ⚙️ 기술 스택 및 도구
 
-<br>
+| 구분 | 기술 |
+| :--- | :--- |
+| **IDE / OS** | VS Code · Ubuntu 24.04 |
+| **가상화** | VirtualBox (Linux VM 구동용) |
+| **DB / CLI** | MySQL 8.x |
+| **셸 / 유틸리티** | Bash · cron |
+| **협업** | Git · Slack |
+
+---
 
 ## 📁 파일 구조
+
 ```
-mysql-backup-restore-lab/
-├─ backups/ # 전체 백업(.sql) 저장 폴더
-├─ backup.sh # full dump 생성 (파일명: full_YYYYmmdd_HHMMSS.sql)
-├─ eat.sh # 먹이기(EAT) 이벤트 → 체력 회복/상태 변경
-├─ env.sh # 환경 변수 (MySQL 접속, 경로 등)
-├─ game_init.sh # 게임 초기화(캐릭터 선택, health=100, mood=NORMAL)
-├─ oops.sh # 사고(OOPS) 이벤트 → 체력 감소/상태 변경
-└─ play.sh # 메인 런처(간단 UI, 상태 감소 루프 & 키 입력)
+tama-game/
+├── backups/        # 전체 백업(.sql) 및 메타데이터(.meta) 저장
+├── reports/        # 검증 리포트 저장
+├── backup.sh       # 전체 백업 및 메타데이터 생성
+├── eat.sh          # '먹이주기' 액션: 체력을 100으로 회복
+├── env.sh          # 공통 환경 변수 및 헬퍼 함수
+├── game_init.sh    # 새 캐릭터 초기화
+├── oops.sh         # '사고' 액션: 체력 감소
+├── play.sh         # 메인 게임 런처 및 UI 루프
+├── restore_pitr.sh # 최신 백업과 바이너리 로그로 DB 복원
+├── verify.sh       # 상태/이벤트 요약 리포트 생성
+└── ...
 ```
 
-<br>
+---
 
-## 🎮 플레이 & 운영 시나리오
-- **시작**: 캐릭터를 선택해 체력 100, 기분 정상으로 초기화하고 터미널에서 상태를 본다.  
-  ```bash
-  ./game_init.sh   # 캐릭터 아이콘 선택 → health=100, mood=NORMAL
-  ./play.sh        # m: 메뉴, q: 종료
-  ```
-- **기록**: 모든 변화(초기화/먹이기/사고/백업/복구)는 사건으로 DB에 누적된다.
-  ```
-  -- 예: 최근 이벤트 10건
-  SELECT ev_type, ev_at, details FROM events ORDER BY ev_at DESC LIMIT 10;
-  ```
-  
-- **운영**: 전체 백업을 만들고, 문제가 생기면 최신 백업 + 변경 이력으로 원하는 시점까지 되돌린다.
-  ```
-  ./backup.sh         # full dump + meta
-  ./restore_pitr.sh   # 최신 dump 복원 + 어제(-1d)까지 재적용
-  ```
-  
-- **점검**: 현재 상태/사건 누계를 리포트로 확인한다.
-  
-  ```
-  ./verify.sh
-  cat reports/verify_*.txt
-  ```
+## 🚀 시작하기 및 데모
 
-<br>
+### 데모 영상
+![Demonstration GIF](https://github.com/user-attachments/assets/13801d91-0de3-47c9-914f-56a7750378f7)
+
+### 시나리오 워크플로우
+
+1.  **캐릭터 초기화:** 캐릭터를 선택하여 새 게임을 시작합니다.
+    ```bash
+    ./game_init.sh
+    ```
+2.  **게임 플레이:** 메인 게임 루프를 실행하여 캐릭터의 상태를 확인합니다. 시간이 지남에 따라 체력이 감소합니다.
+    ```bash
+    ./play.sh  # 'm' 키로 메뉴 열기, 'q' 키로 종료
+    ```
+3.  **캐릭터에게 먹이주기:** 체력을 100으로 회복합니다.
+    ```bash
+    ./eat.sh
+    ```
+4.  **사고 시뮬레이션:** 여러 번의 사고를 발생시켜 체력을 낮추고 캐릭터의 기분을 'PAIN'으로 변경합니다.
+    ```bash
+    ./oops.sh && ./oops.sh && ./oops.sh
+    ```
+5.  **전체 백업 생성:** 수동으로 전체 백업을 실행합니다.
+    ```bash
+    ./backup.sh
+    ls -l backups/ # 백업 파일이 생성되었는지 확인
+    ```
+6.  **PITR 수행:** 24시간 전의 상태로 데이터베이스를 복원합니다. 이는 심각한 오류로부터 복구하는 상황을 시뮬레이션합니다.
+    ```bash
+    ./restore_pitr.sh
+    ```
+7.  **상태 검증:** 리포트를 생성하고 확인하여 복원이 성공적으로 완료되었는지 검증합니다.
+    ```bash
+    ./verify.sh
+    cat reports/verify_*.txt
+    ```
+
+---
+
+## 🤖 자동화 예시 (cron)
+
+`cron`을 사용하여 주기적인 백업 및 리포트 생성을 자동화할 수 있습니다.
+
+```bash
+# 현재 사용자의 crontab 편집
+crontab -e
+
+# 매일 새벽 2시에 백업을 실행하고, 매시간 검증 작업을 수행하도록 다음 라인을 추가합니다.
+# 스크립트 경로는 절대 경로로 지정해야 합니다.
+0 2 * * * /path/to/tama-game/backup.sh
+0 * * * * /path/to/tama-game/verify.sh
+```
+
+---
 
 ## 🧩 데이터 모델
-- **현재 상태**: 캐릭터 아이콘(정상/먹기/아픔), 체력(0~100), 기분(예: 정상·먹는 중·아픔), 마지막 백업 시각, 마지막 사고 시각, 갱신 시각을 저장한다.
-- **사건 기록**: 어떤 일이 언제 일어났는지와 세부 내용을 유형(초기화, 먹이기, 사고, 백업, 복구)별로 누적한다.
-- **복구 메타**: 생성된 전체 백업 파일 경로와 덤프 헤더에서 추출한 기준 정보, 생성 시각을 보관한다.
 
-```
--- 요약 DDL (필요 시 실제 덤프를 임포트 권장)
+데이터베이스 스키마는 현재 상태와 이벤트 로그를 분리하여 관측 가능성(Observability)과 복구 용이성을 높였습니다.
+
+*   **`game_state`**: 캐릭터의 현재 속성(체력, 기분, 아이콘)을 저장합니다. 이 테이블은 변경 가능하며, "현재" 상태를 반영합니다.
+*   **`events`**: 발생한 모든 행동에 대한 불변의 순차적 로그입니다.
+*   **`pitr_meta`**: 각 전체 백업에 대한 메타데이터를 포함하며, 덤프 파일 경로와 바이너리 로그 좌표(`GTID_EXECUTED`)를 저장합니다.
+
+```sql
+-- 참조용 단순화된 DDL
+
 CREATE TABLE game_state (
   id INT PRIMARY KEY,
   icon_normal VARCHAR(255), icon_eat VARCHAR(255), icon_pain VARCHAR(255),
   health INT NOT NULL DEFAULT 100,
   mood VARCHAR(20) NOT NULL DEFAULT 'NORMAL',
-  last_backup_at DATETIME(6), last_oops_at DATETIME(6), updated_at DATETIME(6)
+  last_backup_at DATETIME(6),
+  last_oops_at DATETIME(6),
+  updated_at DATETIME(6)
 );
 
 CREATE TABLE events (
@@ -134,60 +180,16 @@ CREATE TABLE events (
 CREATE TABLE pitr_meta (
   id BIGINT PRIMARY KEY AUTO_INCREMENT,
   full_dump VARCHAR(512) NOT NULL,
-  meta_text LONGTEXT,
+  meta_text LONGTEXT, -- 덤프 헤더에서 GTID_EXECUTED 값을 저장
   created_at DATETIME(6) NOT NULL
 );
 ```
 
-<br>
+---
 
-## 🧪 시연 플로우
+## 🚀 향후 개선 계획
 
-![시연](https://github.com/user-attachments/assets/13801d91-0de3-47c9-914f-56a7750378f7)
+*   **인터랙티브 복구:** 사용자가 최근 이벤트 목록에서 특정 타임스탬프를 선택하여 PITR을 수행할 수 있도록 허용합니다.
+*   **고급 자동화:** 백업 보존 정책을 구현하고, 백업 파일을 원격 스토리지 서비스(예: AWS S3)에 업로드합니다.
 
-
-1. 초기화
-   ```
-   ./game_init.sh
-   ```
-2. 플레이
-   ```
-   ./play.sh  # 화면에서 체력 감소/아이콘 변화 확인
-   ```
-3. 먹이기 → 회복
-   ```
-   ./eat.sh
-   ``` 
-4. 사고 여러 번 → 아픔 상태
-   ```
-   ./oops.sh && ./oops.sh && ./oops.sh
-   ```
-5. 전체 백업 생성
-   ```
-   ./backup.sh
-   ls backups/
-   ```
-6. 복구
-   ```
-   ./restore_pitr.sh
-   ```
-7. 점검 리포트
-   ```
-   ./verify.sh
-   cat reports/verify_*.txt
-   ```
-
-## 🗓️자동화 예시
-
-## 📂 회고
-
-### 👤 문민경
-터미널에서 돌아가는 **게임 루프와 메뉴형 UI를 Bash로 안정적으로 구성**하는 법을 익혔습니다. `set -euo pipefail`과 `trap`으로 오류를 빠르게 드러내고, **백그라운드 감소 루프(체력 자동 감소)와 화면 갱신**을 충돌 없이 관리하는 게 핵심이었습니다. 앞으로는 입력 이벤트를 더 풍부하게 하고, 로그 기반으로 **플레이 리플레이**까지 구현해 보고 싶습니다.
-
-### 👤 장송하
-이번 프로젝트를 통해 **전체 백업과 시점 복구(PITR)의 실전 흐름**을 체득했습니다. `mysqldump`로 일관성 있는 덤프를 만들고, `mysqlbinlog`의 **지정 시각까지 재적용**해 장애를 되돌리는 과정에서 **바이너리 로그 보존 기간, 권한, 서버 설정**의 중요성을 몸으로 느꼈습니다. 다음 단계로는 사용자가 직접 시간을 고르는 **인터랙티브 복구 옵션**을 추가해 복구 경험을 더 직관적으로 만들 계획입니다.
-
-### 👤 황병길
-상태와 사건을 분리한 **간단한 스키마(game_state / events / pitr_meta)**가 **관측 가능성(Observability)**을 크게 높여 준다는 걸 확인했습니다. `verify.sh`로 **현재 상태와 이벤트 집계 리포트**를 자동 생성해 운영 점검 속도를 끌어올렸고, 주기 백업·리포트 **크론 자동화**까지 연결해 “게임=운영 훈련”이라는 목표를 달성했습니다. 향후에는 보존 정책과 **백업 회전(rotate)**, 원격 저장소 업로드를 더해 실전성까지 강화하겠습니다.
-
-
+  
